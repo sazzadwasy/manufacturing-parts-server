@@ -16,6 +16,7 @@ async function run() {
         await client.connect();
         const partsCollection = client.db('manufacture').collection('parts');
         const orderCollection = client.db('manufacture').collection('orders');
+        const reviewCollection = client.db('manufacture').collection('reviews');
 
         app.get('/parts', async (req, res) => {
             const query = {}
@@ -30,10 +31,12 @@ async function run() {
             res.send(part)
         })
         app.get('/orders', async (req, res) => {
-            const buyerEmail = req.query.UserEmail
-            const query = { buyer: buyerEmail }
+            console.log(req.query)
+            const buyerEmail = req.query.buyer
+            const query = { UserEmail: buyerEmail }
             const orders = orderCollection.find(query)
             const result = await orders.toArray()
+            // console.log(result)
             res.send(result)
         })
         app.post('/orders', async (req, res) => {
