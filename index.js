@@ -17,6 +17,14 @@ function varifyJwt(req, res, next) {
     if (!authHeader) {
         return res.status(401).send({ messege: 'UnAuthorized access' })
     }
+    const token = authHeader.split(' ')[1]
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ messege: 'Forbidden access' })
+        }
+        req.decoded = decoded
+        next()
+    });
 }
 
 async function run() {
@@ -33,6 +41,24 @@ async function run() {
             const parts = await cursor.toArray()
             res.send(parts)
         })
+        app.get('/users', async (req, res) => {
+            const query = {}
+            const cursor = userCollection.find(query)
+            const users = await cursor.toArray()
+            res.send(users)
+        })
+
+        app.put('/users/admin/:email', varifyJwt, async (req, res) => {
+            const email = req.params.email
+            const filter = { email: email };
+            const updateDoc = {
+                $set: { role: 'admin' }
+            };
+            const result = await userCollection.updateOne(filter, updateDoc)
+            res.send(result)
+
+        })
+
         app.put('/user/:email', async (req, res) => {
             const email = req.params.email
             const user = req.body
@@ -55,12 +81,17 @@ async function run() {
         app.get('/orders', varifyJwt, async (req, res) => {
             console.log(req.query)
             const buyerEmail = req.query.buyer
-            console.log('auth heaer', authorization)
-            const query = { UserEmail: buyerEmail }
-            const orders = orderCollection.find(query)
-            const result = await orders.toArray()
-            // console.log(result)
-            res.send(result)
+            const decodedEmail = req.decoded.email
+            if (buyerEmail === decodedEmail) {
+                const query = { UserEmail: buyerEmail }
+                const orders = orderCollection.find(query)
+                const result = await orders.toArray()
+                res.send(result)
+            }
+            else {
+                return res.status(403).send({ messege: 'Forbidden access' })
+            }
+
         })
         app.post('/orders', async (req, res) => {
             const order = req.body
