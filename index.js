@@ -46,6 +46,13 @@ async function run() {
             const result = await partsCollection.insertOne(part)
             res.send(result)
         })
+        app.delete('/parts/:id', async (req, res) => {
+            const id = req.params.id
+            console.log(id)
+            const query = { _id: ObjectId(id) }
+            const result = await partsCollection.deleteOne(query)
+            res.send(result)
+        })
         app.get('/users', async (req, res) => {
             const query = {}
             const cursor = userCollection.find(query)
