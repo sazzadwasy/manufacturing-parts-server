@@ -41,21 +41,39 @@ async function run() {
             const parts = await cursor.toArray()
             res.send(parts)
         })
+        app.post('/parts', async (req, res) => {
+            const part = req.body
+            const result = await partsCollection.insertOne(part)
+            res.send(result)
+        })
         app.get('/users', async (req, res) => {
             const query = {}
             const cursor = userCollection.find(query)
             const users = await cursor.toArray()
             res.send(users)
         })
-
+        app.get('/admin/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await userCollection.findOne({ email: email });
+            const isAdmin = user.role === 'admin';
+            res.send({ admin: isAdmin })
+        })
         app.put('/users/admin/:email', varifyJwt, async (req, res) => {
             const email = req.params.email
-            const filter = { email: email };
-            const updateDoc = {
-                $set: { role: 'admin' }
-            };
-            const result = await userCollection.updateOne(filter, updateDoc)
-            res.send(result)
+            const requester = req.decoded.email
+            const requesterAccount = await userCollection.findOne({ email: requester })
+            if (requesterAccount.role === 'admin') {
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: 'admin' }
+                };
+                const result = await userCollection.updateOne(filter, updateDoc)
+                res.send(result)
+            }
+            else {
+                return res.status(403).send({ messege: "Forbidden to go ahead" })
+            }
+
 
         })
 
