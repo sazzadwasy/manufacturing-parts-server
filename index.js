@@ -35,12 +35,19 @@ async function run() {
         const orderCollection = client.db('manufacture').collection('orders');
         const reviewCollection = client.db('manufacture').collection('reviews');
         const userCollection = client.db('manufacture').collection('users');
+        const paymentCollection = client.db('manufacture').collection('payments');
 
         app.get('/parts', async (req, res) => {
             const query = {}
             const cursor = partsCollection.find(query)
             const parts = await cursor.toArray()
             res.send(parts)
+        })
+        app.get('/payments', async (req, res) => {
+            const query = {}
+            const cursor = paymentCollection.find(query)
+            const payment = await cursor.toArray()
+            res.send(payment)
         })
         app.post('/parts', async (req, res) => {
             const part = req.body
@@ -66,6 +73,7 @@ async function run() {
             const isAdmin = user.role === 'admin';
             res.send({ admin: isAdmin })
         })
+
         app.put('/users/admin/:email', varifyJwt, async (req, res) => {
             const email = req.params.email
             const requester = req.decoded.email
@@ -104,8 +112,7 @@ async function run() {
                 $set: user
             };
             const result = await userCollection.updateOne(filter, updateDoc, options)
-            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' })
-            res.send({ result, token })
+            res.send(result)
 
         })
         app.get('/purchase/:id', async (req, res) => {
@@ -141,6 +148,20 @@ async function run() {
             const query = { _id: ObjectId(id) }
             const order = await orderCollection.findOne(query)
             res.send(order)
+        })
+        app.patch('/orders/:id', async (req, res) => {
+            const id = req.params.id
+            const payment = req.body
+            const filter = { _id: ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId,
+                }
+            }
+            const result = await paymentCollection.insertOne(payment)
+            const updatedOrder = await orderCollection.updateOne(filter, updatedDoc)
+            res.send(updatedOrder)
         })
         app.delete('/orders/:id', async (req, res) => {
             const id = req.params.id
